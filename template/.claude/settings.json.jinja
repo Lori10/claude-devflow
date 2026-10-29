@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "extraKnownMarketplaces": {
+    "lori10-devflow": {
+      "source": { "source": "github", "repo": "{{ devflow_marketplace_repo }}" }
+    }
+  },
+  "enabledPlugins": {
+    "devflow@lori10-devflow": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git show:*)",
+      "Bash(git branch:*)", "Bash(git switch:*)", "Bash(git add:*)", "Bash(git commit:*)",
+      "Bash(git push:*)", "Bash(git pull:*)", "Bash(git fetch:*)", "Bash(git merge-base:*)",
+      "Bash(gh pr create:*)", "Bash(gh pr view:*)", "Bash(gh pr list:*)", "Bash(gh pr checks:*)",
+      "Bash(gh pr ready:*)", "Bash(gh pr diff:*)",
+      "Bash(gh run list:*)", "Bash(gh run view:*)", "Bash(gh run watch:*)",
+      "Bash(scripts/check.sh:*)"{% if test_cmd %},
+      "Bash({{ test_cmd }}:*)"{% endif %}{% if fast_test_cmd %},
+      "Bash({{ fast_test_cmd }}:*)"{% endif %}{% if lint_cmd %},
+      "Bash({{ lint_cmd }}:*)"{% endif %}{% if cloud == 'aws' %},
+      "Bash(cdk synth:*)", "Bash(cdk diff:*)", "Bash(cdk ls:*)",
+      "Bash(aws sts get-caller-identity:*)"{% endif %}
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(**/.env)"
+    ]
+  }{% if sandbox %},
+  "sandbox": {
+    "enabled": true,
+    "filesystem": {
+      "denyRead": [".env", ".env.*", "**/.env"]
+    },
+    "network": {
+      "allowedDomains": [
+        "pypi.org", "files.pythonhosted.org", "registry.npmjs.org",
+        "github.com", "api.github.com", "objects.githubusercontent.com", "codeload.github.com"{% if cloud == 'aws' %},
+        "*.amazonaws.com"{% endif %}
+      ]
+    }
+  }{% endif %}
+}

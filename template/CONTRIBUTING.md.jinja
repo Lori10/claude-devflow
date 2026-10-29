@@ -1,0 +1,56 @@
+# How to work on this project
+
+Every change (feature, fix, backlog item) follows one loop: plan it as an OpenSpec change,
+get the plan approved, implement it test-first, archive it, merge it. Claude Code drives
+each step through a slash command; the gates marked **you** are where nothing proceeds
+without an explicit yes.
+
+The rules themselves live elsewhere and are not repeated here:
+- [`CLAUDE.md`](CLAUDE.md): constraints and git rules.
+- [`openspec/config.yaml`](openspec/config.yaml): what each artifact must contain.
+- [`.claude/devflow.env`](.claude/devflow.env): protected branch, pinned OpenSpec version, test/lint commands.
+- The [devflow plugin](https://github.com/{{ devflow_marketplace_repo }}): the enforced rules
+  (git, dependency, cloud and secrets guards; tests before a turn ends; lint after edits) and
+  the `/devflow:*` skills. Claude Code offers to install it when you open this repo.
+
+## The loop
+
+| # | Command | What happens | Gate |
+|---|---|---|---|
+| 0 | `/devflow:new-branch` | Clean-tree check, pull `{{ protected_branch }}`, create `feat/…`, `fix/…`, `chore/…` or `docs/…`. First, because the plan is committed too. | |
+| 1 | `/opsx:explore` *(optional)* | Think the idea through against the specs. Writes nothing unless you say so. | |
+| 2 | `/opsx:propose <idea>` | Creates `openspec/changes/<name>/` with `proposal.md`, delta `specs/`, `design.md`, `tasks.md`. Stops before any code. | |
+| 3 | Review | Read all four. Revise with `/opsx:update <name>`. | **you** approve the plan and any new dependency |
+| 4 | `/opsx:apply <name>` | Task group 1 writes failing tests from the spec scenarios; later groups make them pass. One commit per task group; after the first group that passes `/devflow:verify`, push and open a draft PR. | |
+| 5 | `/devflow:verify` | `scripts/check.sh` (lint, tests, `openspec validate`, gitleaks, weakened-test scan) plus diff vs plan → PASS/FAIL with evidence. For anything non-trivial also `/code-review` and `/security-review`. | |
+| 6 | Live checks | Last task group: integration tests, evals, deploys. Billed, never in the default test run. | **you** run or approve |
+| 7 | `/opsx:archive <name>` | Delta specs merge into `openspec/specs/`; the change moves to `openspec/changes/archive/`. On the branch, before merging. | |
+| 8 | `/devflow:land-branch` | `check.sh --if-stale --land` (fails if the change isn't archived or has unchecked tasks) → push → PR (or `gh pr ready`) → watch CI → merge commit → pull `{{ protected_branch }}`. | **you** approve the merge; GitHub blocks it until CI is green |
+
+**Plan turns out wrong mid-implementation:** stop, `/opsx:update <name>`, re-approve,
+continue `/opsx:apply`. Code never drifts from the spec silently.
+
+## Three test layers
+
+| Layer | Runs | Checks | Can be skipped? |
+|---|---|---|---|
+| Stop hook | End of every turn that changed `{{ code_paths }}` | `{{ fast_test_cmd or 'disabled' }}` | No: the harness runs it, not Claude |
+| `/devflow:verify` → `check.sh` | When asked, as the last offline task, and inside `/devflow:land-branch` | lint, tests, openspec validate, secrets, weakened tests, diff vs plan | Yes, an instruction can be forgotten; the next layer covers it |
+| CI → `check.sh` | Every PR push and every push to `{{ protected_branch }}` | Same gates plus gitleaks, in a clean environment | No: `{{ protected_branch }}` requires a green `checks` job |
+
+- The Stop hook refuses to end a turn on a red suite. Exception: when **only** test files
+  changed (the tests-first group) it reports the failures instead of blocking.
+- `check.sh` stamps a clean tree that passed every gate in `.git/verify-pass`;
+  `--if-stale` skips the gates for that same tree. CI never uses the stamp.
+- Every hook deny/ask is logged to `.claude/gate-events.jsonl` (gitignored): read it to spot
+  rules that fire falsely.
+
+## Long sessions
+- Big `/opsx:apply`: set a checkable finish line, e.g. `/goal all tasks in openspec/changes/<name>/tasks.md are checked and the tests pass`.
+- Compact with a focus: `/compact Focus on <name>: remaining tasks and decisions`. A hook re-prints branch, dirty files and open tasks afterwards.
+- Two changes at once: separate worktrees. `.worktreeinclude` copies `.env` into each.
+
+## One-time GitHub setup
+Run `scripts/setup_github.sh` once after the first push: merge-commit-only, delete branch on
+merge, secret scanning with push protection, and a ruleset on `{{ protected_branch }}`
+(PR + green `checks`, no force-push, no deletion, no bypass).

@@ -1,0 +1,27 @@
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+
+# Claude Code: personal settings and the local hook event log
+.claude/settings.local.json
+.claude/gate-events.jsonl
+{% if language == 'python' %}
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+{% elif language == 'node' %}
+# Node
+node_modules/
+dist/
+coverage/
+{% endif %}{% if cloud == 'aws' %}
+# AWS CDK
+cdk.out/
+{% endif %}
+.DS_Store

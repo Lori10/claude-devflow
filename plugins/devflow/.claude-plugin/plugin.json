@@ -1,0 +1,7 @@
+{
+  "name": "devflow",
+  "version": "0.1.0",
+  "description": "Spec-driven, test-first workflow: guard hooks for git, dependencies, cloud and secrets; tests before a turn ends; /devflow:new-branch, /devflow:verify, /devflow:land-branch. Configured per project in .claude/devflow.env.",
+  "author": { "name": "Lorenc Zhuka" },
+  "license": "MIT"
+}

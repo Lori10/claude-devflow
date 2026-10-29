@@ -1,0 +1,12 @@
+{
+  "name": "lori10-devflow",
+  "description": "Spec-driven, test-first Claude Code workflow with enforced git and cloud guardrails",
+  "owner": { "name": "Lorenc Zhuka" },
+  "plugins": [
+    {
+      "name": "devflow",
+      "source": "./plugins/devflow",
+      "description": "Git/deps/cloud guard hooks, tests-before-stop, /new-branch, /verify, /land-branch"
+    }
+  ]
+}

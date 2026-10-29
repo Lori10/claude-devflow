@@ -1,0 +1,12 @@
+[project]
+name = "claude-devflow"
+version = "0.1.0"
+description = "Claude Code plugin marketplace + copier template for a spec-driven, test-first workflow"
+requires-python = ">=3.10"
+
+[dependency-groups]
+dev = ["pytest>=8", "copier>=9"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

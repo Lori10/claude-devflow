@@ -1,0 +1,20 @@
+schema: spec-driven
+
+# Constraints live in CLAUDE.md (Claude Code always loads it); keep only what shapes the
+# OpenSpec artifacts here, so the two files can't drift apart.
+context: |
+  {{ project_name }}: {{ project_description }}
+  Constraints and git rules: see CLAUDE.md. Workflow config: .claude/devflow.env.
+
+rules:
+  proposal:
+    - State any new dependency explicitly; it needs user approval
+    - Name live or billed resources the change touches (cloud, paid APIs) and their cost
+  design:
+    - Record alternatives considered and why they were rejected
+    - Record known gaps found during testing under Risks / Trade-offs
+  tasks:
+    - First task group writes failing tests for the spec scenarios
+    - Never edit an existing test to make it pass unless the spec changed
+    - The last offline task group ends with a task to run /devflow:verify and confirm PASS
+    - Live/billed checks (integration tests, evals, deploys) are a separate final task group, run or approved by the user

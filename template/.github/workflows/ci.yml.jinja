@@ -1,0 +1,53 @@
+name: CI
+
+# PRs cover feature branches; push covers the merge commit on {{ protected_branch }}. Without the
+# branch filter every PR push would run `checks` twice.
+on:
+  push:
+    branches: [{{ protected_branch }}]
+  pull_request:
+
+# Least privilege. Actions are pinned to commit SHAs; Dependabot keeps the pins current.
+permissions:
+  contents: read
+  pull-requests: read # gitleaks-action lists a PR's commits through the API
+
+concurrency:
+{%- raw %}
+  group: ci-${{ github.ref }}
+{%- endraw %}
+  cancel-in-progress: true
+
+jobs:
+  # The job id `checks` is the required status check in the ruleset; don't rename it.
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Services the offline tests need (DEVFLOW_SERVICES) go here, e.g. a postgres container.
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0 # check.sh diffs tests against the merge base with origin/{{ protected_branch }}
+{%- if language == 'python' %}
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        with:
+          enable-cache: true
+{%- endif %}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20" # the pinned OpenSpec CLI runs through npx
+{%- if language == 'python' %}
+      - run: uv sync --frozen
+{%- elif language == 'node' %}
+      - run: npm ci
+{%- endif %}
+      # Comments need pull-requests: write; findings already fail this required job.
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+{%- raw %}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+{%- endraw %}
+          GITLEAKS_ENABLE_COMMENTS: "false"
+      # Same gates as /devflow:verify locally. Live tests, evals and deploys never run in CI.
+      - run: scripts/check.sh

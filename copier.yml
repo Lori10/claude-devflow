@@ -1,0 +1,133 @@
+# Project scaffold for the devflow workflow. Usage:
+#   uvx copier copy --trust gh:Lori10/claude-devflow <project-dir>
+#   uvx copier update --trust          # later, inside the project, to pull template fixes
+# --trust is needed for the _tasks below (git init, openspec init, chmod).
+
+_min_copier_version: "9.0.0"
+_subdirectory: template
+_answers_file: .copier-answers.yml
+_templates_suffix: .jinja
+_skip_if_exists:
+  - CLAUDE.md          # a project's CLAUDE.md is its own after the first render
+  - openspec/config.yaml
+_tasks:
+  - "git rev-parse --git-dir >/dev/null 2>&1 || git init -q -b {{ protected_branch }}"
+  - "chmod +x scripts/check.sh scripts/setup_github.sh scripts/weakened_tests.py"
+  - "test -d .claude/skills/openspec-propose || npx --yes @fission-ai/openspec@{{ openspec_version }} init --tools claude --no-animation ."
+
+project_name:
+  type: str
+  help: Project name (human readable)
+
+project_slug:
+  type: str
+  help: Repository name
+  default: "{{ project_name | lower | replace(' ', '-') }}"
+
+project_description:
+  type: str
+  help: One or two sentences on what the project is
+  default: ""
+
+github_repo:
+  type: str
+  help: GitHub repo (owner/name)
+  default: "Lori10/{{ project_slug }}"
+
+language:
+  type: str
+  help: Main language (sets test/lint defaults)
+  choices: [python, node, other]
+  default: python
+
+python_version:
+  type: str
+  help: Python version
+  default: "3.12"
+  when: "{{ language == 'python' }}"
+
+protected_branch:
+  type: str
+  default: main
+
+openspec_version:
+  type: str
+  help: Pinned OpenSpec CLI version (single source of truth, lives in .claude/devflow.env)
+  default: "1.15.0"
+
+test_cmd:
+  type: str
+  help: Full offline test command (check.sh and CI)
+  default: "{% if language == 'python' %}uv run pytest -q{% elif language == 'node' %}npm test{% endif %}"
+
+fast_test_cmd:
+  type: str
+  help: Fast test command run before every turn ends (Stop hook); empty disables it
+  default: "{% if language == 'python' %}uv run --quiet pytest -q -x --ff{% elif language == 'node' %}npm test --silent{% endif %}"
+
+lint_cmd:
+  type: str
+  help: Repo-wide lint command (check.sh and CI)
+  default: "{% if language == 'python' %}uv run ruff check .{% elif language == 'node' %}npx eslint .{% endif %}"
+
+lint_file_cmd:
+  type: str
+  help: Per-file lint after each edit; the file path is appended. Empty disables it
+  default: "{% if language == 'python' %}uv run --quiet ruff check --force-exclude{% elif language == 'node' %}npx eslint{% endif %}"
+
+lint_globs:
+  type: str
+  default: "{% if language == 'python' %}*.py{% elif language == 'node' %}*.ts *.tsx *.js *.jsx{% endif %}"
+
+code_paths:
+  type: str
+  help: Paths whose changes trigger the Stop-hook tests
+  default: "{% if language == 'python' %}src tests pyproject.toml{% else %}src tests package.json{% endif %}"
+
+test_paths:
+  type: str
+  default: tests
+
+services:
+  type: str
+  help: host:port services the offline tests need (space separated), e.g. 127.0.0.1:5432
+  default: ""
+
+cloud:
+  type: str
+  help: Cloud guard (asks before deploy/destroy and cloud write calls)
+  choices: [none, aws]
+  default: none
+
+aws_region:
+  type: str
+  help: The only AWS region this project may use
+  default: ""
+  when: "{{ cloud == 'aws' }}"
+
+aws_profile:
+  type: str
+  default: ""
+  when: "{{ cloud == 'aws' }}"
+
+public_repo:
+  type: bool
+  help: Public repository? (a push publishes; secret-looking files ask first)
+  default: true
+
+sandbox:
+  type: bool
+  help: >-
+    Turn on Claude Code's Bash sandbox (blocks shell reads of .env files; network limited to
+    package registries, GitHub{% if cloud == 'aws' %} and AWS{% endif %})? Stronger, but other hosts then need approval
+  default: false
+
+claude_action:
+  type: bool
+  help: Add the @claude GitHub Action (needs ANTHROPIC_API_KEY secret)?
+  default: false
+
+devflow_marketplace_repo:
+  type: str
+  help: GitHub repo of the devflow plugin marketplace
+  default: Lori10/claude-devflow

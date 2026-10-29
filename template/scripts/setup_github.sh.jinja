@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# One-time GitHub setup for {{ github_repo }}. Idempotent; run it yourself after the first push:
+#   - merge commits only, delete branch on merge
+#   - secret scanning + push protection (public repos; private ones need GitHub Advanced Security)
+#   - ruleset on the default branch: PR + green `checks` job, no force-push, no deletion, no bypass
+set -euo pipefail
+REPO="{{ github_repo }}"
+NAME="{{ protected_branch }}"
+
+gh repo edit "$REPO" --enable-merge-commit --enable-squash-merge=false \
+  --enable-rebase-merge=false --delete-branch-on-merge
+
+gh api -X PATCH "repos/$REPO" --silent --input - <<'JSON' || echo "secret scanning: not available for this repo (private without GHAS?)"
+{"security_and_analysis": {"secret_scanning": {"status": "enabled"},
+                           "secret_scanning_push_protection": {"status": "enabled"}}}
+JSON
+
+if gh api "repos/$REPO/rulesets" --jq '.[].name' | grep -qx "$NAME"; then
+  echo "ruleset '$NAME' already exists; leaving it unchanged"
+else
+  gh api -X POST "repos/$REPO/rulesets" --silent --input - <<JSON
+{
+  "name": "$NAME",
+  "target": "branch",
+  "enforcement": "active",
+  "bypass_actors": [],
+  "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}},
+  "rules": [
+    {"type": "deletion"},
+    {"type": "non_fast_forward"},
+    {"type": "pull_request", "parameters": {
+      "allowed_merge_methods": ["merge"],
+      "required_approving_review_count": 0,
+      "dismiss_stale_reviews_on_push": false,
+      "require_code_owner_review": false,
+      "require_last_push_approval": false,
+      "required_review_thread_resolution": false}},
+    {"type": "required_status_checks", "parameters": {
+      "strict_required_status_checks_policy": false,
+      "required_status_checks": [{"context": "checks"}]}}
+  ]
+}
+JSON
+  echo "ruleset '$NAME' created"
+fi
