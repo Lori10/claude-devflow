@@ -12,6 +12,8 @@ It works with [OpenSpec](https://github.com/Fission-AI/OpenSpec) (Fission AI): t
 skills come from `openspec init` in each project, pinned to the version in
 `.claude/devflow.env`.
 
+Why it is built this way, when to use it and its limits: [docs/guide.md](docs/guide.md).
+
 ## The loop
 
 `/devflow:new-branch` → `/opsx:propose` → **you approve** → `/opsx:apply` (tests first,
@@ -33,7 +35,8 @@ scripts, and `openspec init --tools claude` with the pinned version. Adding it t
 existing repo works the same way (`copier copy` into the repo); `CLAUDE.md` and
 `openspec/config.yaml` are never overwritten once they exist.
 
-Install the plugin by hand (e.g. before this repo is on GitHub):
+Install the plugin by hand when Claude Code doesn't offer it (e.g. the folder was trusted
+before `.claude/settings.json` existed, or this repo isn't on GitHub yet):
 
 ```bash
 claude plugin marketplace add ~/claude-devflow     # or: Lori10/claude-devflow
