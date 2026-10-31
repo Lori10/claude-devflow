@@ -1,7 +1,8 @@
 """Shared helpers for the devflow hooks: project config, hook I/O, git, event log.
 
-Stdlib only, Python 3.8+. Every hook must fail open on its own bugs (exit 0) and
-never print anything but the single JSON object Claude Code expects on stdout.
+Stdlib only, Python 3.8+. Every hook must fail open on its own bugs (exit 1: a
+non-blocking error Claude Code shows, never 2) and never print anything but the single
+JSON object Claude Code expects on stdout.
 """
 from __future__ import annotations
 

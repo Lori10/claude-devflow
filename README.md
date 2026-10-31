@@ -13,6 +13,8 @@ skills come from `openspec init` in each project, pinned to the version in
 `.claude/devflow.env`.
 
 Why it is built this way, when to use it and its limits: [docs/guide.md](docs/guide.md).
+How the pieces connect, step by step, plus changing and debugging the kit:
+[docs/how-it-works.md](docs/how-it-works.md).
 
 ## The loop
 
